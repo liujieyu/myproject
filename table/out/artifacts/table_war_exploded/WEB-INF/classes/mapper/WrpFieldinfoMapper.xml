@@ -1,0 +1,17 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.table.mapper.WrpFieldinfoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.example.table.entity.WrpFieldinfo">
+        <id column="ID" property="id" />
+        <result column="FormANDFieldID" property="FormANDFieldID" />
+        <result column="FormID" property="FormID" />
+        <result column="FieldID" property="FieldID" />
+        <result column="Field" property="Field" />
+        <result column="FieldName" property="FieldName" />
+    </resultMap>
+    <select id="selectWrpFieldinfoByFormIDAndFieldID" resultType="java.util.Map">
+        select Field as value,FieldName as label from WRP_FieldInfo where FormID=#{formid} and FieldID=#{fieldid}
+    </select>
+</mapper>

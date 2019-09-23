@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.table.mapper.StAlarminfoMapper">
+
+    <!-- 通用查询映射结果 -->
+    <resultMap id="BaseResultMap" type="com.example.table.entity.StAlarminfo">
+        <result column="ID" property="id" />
+        <result column="STNM" property="stnm" />
+        <result column="STCD" property="stcd" />
+        <result column="Alarm" property="Alarm" />
+        <result column="TM" property="tm" />
+        <result column="TMSTR" property="tmstr" />
+        <result column="CONTENTS" property="contents" />
+        <result column="MV" property="mv" />
+        <result column="AlarmV" property="AlarmV" />
+        <result column="MEMO" property="memo" />
+        <result column="SENDSIGN" property="sendsign" />
+        <result column="TYPENAME" property="typename" />
+        <result column="ADNM" property="adnm" />
+        <result column="RowId" property="rowid" />
+        <result column="ALARMNAME" property="alarmname" />
+    </resultMap>
+    <sql id="Alarm_Adcd_Xian">
+    (select case ad_lv when 5 then AD_NM when 6 then (select AD_NM from WRP_AD_B sub where sub.ad_cd=m.UP_ADCD)+AD_NM end from WRP_AD_B m where AD_CD=ADDVCD) as ADNM
+    </sql>
+    <sql id="Alarm_Adcd_Shi">
+    (select case ad_lv when 4 then AD_NM when 5 then (select AD_NM from WRP_AD_B sub where sub.ad_cd=m.UP_ADCD)+AD_NM when 6 then (select  (select AD_NM from WRP_AD_B sub2 where sub2.AD_CD=sub.UP_ADCD)+AD_NM from WRP_AD_B sub where sub.ad_cd=m.UP_ADCD)+AD_NM end from WRP_AD_B m where AD_CD=ADDVCD) as ADNM
+    </sql>
+    <!--站点预警信息统计-->
+    <select id="selectWarmInfoByCount" parameterType="com.example.table.entity.AlarmParam" resultType="java.lang.Integer">
+        select count(*) as count from ST_AlarmInfo a inner join ST_STBPRP_B b on a.STCD=b.STCD
+        where tm &gt;= CONVERT(datetime,'${begintime}',120) and tm &lt;= CONVERT(datetime,'${endtime}',120)
+        <if test="adcd != null">
+            and b.ADDVCD like #{adcd}+'%'
+        </if>
+        <if test="alarmlevel !=null &amp;&amp; alarmlevel > 0">
+            and a.Alarm=#{alarmlevel}
+        </if>
+        <if test="sitename != null">
+            and b.STNM like '%'+#{sitename}+'%'
+        </if>
+    </select>
+    <!--分页查询站点预警信息-->
+    <select id="selectWarmInfoByPage" parameterType="com.example.table.entity.AlarmParam" resultMap="BaseResultMap">
+        select * from (select a.STCD,b.STNM,convert(varchar(19),tm,120) as TMSTR,(select FieldName from WRP_FieldInfo where FormID='ST_AlarmInfo' and FieldID='Alarm' and Field=a.Alarm) as ALARMNAME,CONTENTS,MV,AlarmV,
+        (select stuff((select ',' + (select FieldName from WRP_FieldInfo where FormID='ST_STBPRP_F' and FieldID='TYPE' and Field=type) from ST_STBPRP_F f where f.STCD =b.STCD for xml path('')),1,1,'')) as TYPENAME,
+        <if test="plantsign==3">
+            <include refid="Alarm_Adcd_Xian" />
+        </if>
+        <if test="plantsign==2">
+            <include refid="Alarm_Adcd_Shi" />
+        </if>
+        , ROW_NUMBER() OVER(Order by ${orderBy} ${sequence}) AS RowId
+        from ST_AlarmInfo a inner join ST_STBPRP_B b on a.STCD=b.STCD
+        where tm &gt;= CONVERT(datetime,'${begintime}',120) and tm &lt;= CONVERT(datetime,'${endtime}',120)
+        <if test="adcd != null &amp;&amp; adcd !='' ">
+        and b.ADDVCD like #{adcd}+'%'
+        </if>
+        <if test="alarmlevel !=null &amp;&amp; alarmlevel > 0">
+        and a.Alarm=#{alarmlevel}
+        </if>
+        <if test="sitename != null &amp;&amp; sitename !='' ">
+        and b.STNM like '%'+#{sitename}+'%'
+        </if>
+        ) as b where RowId between #{begincount} and #{endcount}
+    </select>
+</mapper>
